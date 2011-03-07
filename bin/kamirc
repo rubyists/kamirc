@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/kamirc'
+
+require_relative '../lib/kamirc/handler/insult'
+require_relative '../lib/kamirc/handler/pong'
+require_relative '../lib/kamirc/handler/join'
+
+EM.run do
+  options = {
+    host: 'chat.freenode.net',
+    port: 6667,
+    pass: nil,
+    nick: 'manverbot',
+    user: "Manveru's Bot"
+  }
+
+  KamIRC::Bot.connect options do |bot|
+    bot.add(KamIRC::Pong, KamIRC::Insult, KamIRC::Join)
+  end
+end
+
