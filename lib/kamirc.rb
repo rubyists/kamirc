@@ -4,11 +4,14 @@ module KamIRC
   require_relative 'kamirc/parser'
   require_relative 'kamirc/handler'
   require_relative 'kamirc/box'
+  require_relative 'kamirc/options_dsl'
 
   class Bot < EM::P::LineAndTextProtocol
     def self.connect(options, &block)
-      EM.connect(options[:host], options[:port], self, options, &block)
+      EM.connect(options.host, options.port, self, options, &block)
     end
+
+    attr_reader :options
 
     def initialize(options)
       @options = options
@@ -19,13 +22,13 @@ module KamIRC
     end
 
     def nick
-      @options[:nick]
+      options.nick
     end
 
     def connection_completed
-      say("PASS #{@options[:pass]}") if @options[:pass]
-      say("NICK #{@options[:nick]}")
-      say("USER #{@options[:nick]} 0 * :#{@options[:user]}")
+      say("PASS #{options.pass}") if options.pass
+      say("NICK #{options.nick}")
+      say("USER #{options.nick} 0 * :#{options.user}")
     end
 
     def receive_line(line)
@@ -43,11 +46,12 @@ module KamIRC
     end
 
     def unbind
-      puts "Lost connection to #{@options[:host]}:#{@options[:port]}"
+      host, port = options.host, options.port
+      puts "Lost connection to #{host}:#{port}"
 
       EM.add_timer(1){
-        puts "Reconnect to #{@options[:host]}:#{@options[:port]}"
-        reconnect(@options[:host], @options[:port])
+        puts "Reconnect to #{host}:#{port}"
+        reconnect(host, port)
       }
     end
 
