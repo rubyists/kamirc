@@ -2,11 +2,6 @@
 
 require_relative '../lib/kamirc'
 
-require_relative '../lib/kamirc/handler/insult'
-require_relative '../lib/kamirc/handler/pong'
-require_relative '../lib/kamirc/handler/join'
-require_relative '../lib/kamirc/handler/google'
-
 options = KamIRC::Options.new(:kamirc)
 
 options.dsl do
@@ -48,6 +43,6 @@ end
 
 EM.run do
   KamIRC::Bot.connect options do |bot|
-    bot.add(KamIRC::Pong, KamIRC::Insult, KamIRC::Join, KamIRC::Google)
+    bot.add(:pong, :insult, :join, :end_of_motd, :eight_ball, :set, :pun)
   end
 end

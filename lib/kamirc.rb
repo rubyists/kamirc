@@ -2,7 +2,7 @@ require 'eventmachine'
 
 module KamIRC
   require_relative 'kamirc/parser'
-  require_relative 'kamirc/handler'
+  require_relative 'kamirc/spark'
   require_relative 'kamirc/box'
   require_relative 'kamirc/options_dsl'
 
@@ -59,15 +59,15 @@ module KamIRC
       box = box(msg)
       p box
 
-      @register.each do |matcher, handler|
+      @register.each do |matcher, spark|
         next unless matches = matching_selectors(box, matcher)
 
-        handler.call(self, box, matches)
+        spark.call(self, box, matches)
       end
     end
 
     def box(msg)
-      cmd = msg[:cmd]
+      cmd = msg[:cmd].to_s
 
       unless container = Box::REGISTER[cmd]
         if cmd =~ /\d\d\d/
@@ -109,12 +109,26 @@ module KamIRC
       send_data("#{msg}\r\n")
     end
 
-    def register(handler, selectors)
-      @register[selectors] = handler
+    def register(spark, selectors)
+      @register[selectors] = spark
     end
 
-    def add(*handlers)
-      handlers.each{|handler| handler.register(self) }
+    def add(*spark)
+      spark.each{|spark|
+        case spark
+        when String, Symbol
+          require_relative "kamirc/spark/#{spark}"
+          query = /^#{spark.to_s.tr('_', '')}$/i
+
+          if found = Sparks.constants.grep(query).first
+            Sparks.const_get(found).register(self)
+          else
+            warn "No module found for %p" % [spark]
+          end
+        else
+          spark.register(self)
+        end
+      }
     end
   end
 end
