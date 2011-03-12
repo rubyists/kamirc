@@ -43,6 +43,6 @@ end
 
 EM.run do
   KamIRC::Bot.connect options do |bot|
-    bot.add(:pong, :insult, :join, :end_of_motd, :eight_ball, :set, :pun)
+    bot.add(:pong, :insult, :join, :end_of_motd, :eight_ball, :set, :pun, :roulette)
   end
 end

@@ -32,7 +32,8 @@ module KamIRC
     end
 
     def receive_line(line)
-      dispatch(@parser.parse(line))
+      msg = @parser.parse(line)
+      EM.defer{ dispatch(msg) }
     rescue Parslet::ParseFailed => error
       p line
       puts error, @parser.root.error_tree
