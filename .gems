@@ -1,0 +1,6 @@
+addressable -v2.2.4
+em-socksify -v0.1.0
+eventmachine -v0.12.10
+http_parser.rb -v0.5.1
+nokogiri -v1.4.4
+parslet -v1.2.0
