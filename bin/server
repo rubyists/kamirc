@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/kamirc'
+require_relative '../lib/kamirc/server'
+
+options = KamIRC::Options.new(:kamirc)
+
+options.dsl do
+  o "Host or IP to listen at",
+    :host, "localhost"
+
+  o "Port listening at ",
+    :port, 6667
+end
+
+EM.run do
+  KamIRC::Server.connect options
+end
