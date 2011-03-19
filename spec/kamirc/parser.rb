@@ -67,6 +67,30 @@ describe KamIRC::Message do
     raise(error)
   end
 
+  it 'parses PASS' do
+    msg = parse("PASS something")
+    msg.should == {
+      cmd: 'PASS',
+      params: ['something'],
+    }
+  end
+
+  it 'parses NICK' do
+    msg = parse('NICK someone')
+    msg.should == {
+      cmd: 'NICK',
+      params: ['someone'],
+    }
+  end
+
+  it 'parses USER' do
+    msg = parse('USER someone 0 * :Someone Else')
+    msg.should == {
+      cmd: 'USER',
+      params: ['someone', '0', '*', 'Someone Else'],
+    }
+  end
+
   it 'parses PING' do
     msg = parse("PING :calvino.freenode.net")
     msg.should == {
@@ -90,6 +114,15 @@ describe KamIRC::Message do
     msg[:prefix][:hostname].should == "pratchett.freenode.net"
     msg[:cmd].should == 'NOTICE'
     msg[:params].should == ['*', "*** Looking up your hostname..."]
+  end
+
+  it 'boxes NOTICE' do
+    msg = parse(":pratchett.freenode.net NOTICE * :*** Looking up your hostname...")
+    box = KamIRC::Box::Notice.from_message(msg)
+    box.should == nil
+  end
+
+  it 'unboxes NOTICE' do
   end
 
   it 'parses 001 RPL_WELCOME' do
