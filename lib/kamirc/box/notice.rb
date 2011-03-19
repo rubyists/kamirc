@@ -19,6 +19,10 @@ module KamIRC
       def self.from_message(msg)
         new(msg[:prefix], 'NOTICE', *msg[:params])
       end
+
+      def to_message
+        ":#{from[:hostname]} #{cmd} #{target} :#{text}"
+      end
     end
   end
 end

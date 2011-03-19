@@ -10,6 +10,11 @@ module KamIRC
       def inspect
         "%s %p -> %s : %p" % [from, cmd, target, params]
       end
+
+      def to_message
+        p self
+        ":#{from[:hostname]} #{cmd} #{target} :#{params.join(' ')}"
+      end
     end
 
     def self.Reply(hash = {})
