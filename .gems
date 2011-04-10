@@ -5,3 +5,4 @@ eventmachine -v0.12.10
 http_parser.rb -v0.5.1
 nokogiri -v1.4.4
 parslet -v1.2.0
+em-spec -v0.2.1

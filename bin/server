@@ -9,8 +9,26 @@ options.dsl do
   o "Host or IP to listen at",
     :host, "localhost"
 
+  o "IP to listen at",
+    :ip, '127.0.0.1'
+
   o "Port listening at ",
     :port, 6667
+
+  o "Time this server was created",
+    :creation_time, Time.now
+
+  o "Version of the Server",
+    :version, "KamIRC-0.1"
+
+  o "Don't worry about that yet?",
+    :available_user_modes, "DOQRSZaghilopswz"
+
+  o "Don't worry about that yet?",
+    :available_channel_modes, "CFILMPQbcefgijklmnopqrstvz"
+
+  o "Message of the day location",
+    :motd_path, File.expand_path('../../motd.txt', __FILE__)
 end
 
 EM.run do

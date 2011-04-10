@@ -1,14 +1,15 @@
 module KamIRC
   module Box
-    class Pong < Struct.new(:cmd)
+    class Pong < Struct.new(:cmd, :server, :server2)
       REGISTER['PONG'] = self
 
       def self.from_message(msg)
-        new(msg[:cmd].to_s)
+        new("PONG", *msg[:params].map(&:to_s))
       end
 
       def to_message
-        "PONG"
+        servers = [server, server2].compact.join(" ")
+        "PONG #{servers}"
       end
     end
 

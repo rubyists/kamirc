@@ -33,7 +33,7 @@ module KamIRC
 
     def receive_line(line)
       msg = @parser.parse(line)
-      EM.defer{ dispatch(msg) }
+      EM.defer{ dispatch(box(msg)) }
     rescue Parslet::ParseFailed => error
       p line
       puts error, @parser.root.error_tree
@@ -56,8 +56,7 @@ module KamIRC
       }
     end
 
-    def dispatch(msg)
-      box = box(msg)
+    def dispatch(box)
       p box
 
       @register.each do |matcher, spark|

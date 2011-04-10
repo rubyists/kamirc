@@ -231,6 +231,11 @@ describe KamIRC::Message do
       cmd: "PRIVMSG",
       params: ["#rubyists", "hello there"]
     }
+
+    parse("PRIVMSG #foo :hi").should == {
+      cmd: 'PRIVMSG',
+      params: ['#foo', 'hi'],
+    }
   end
 
   it 'parses 004 RPL_MYINFO' do

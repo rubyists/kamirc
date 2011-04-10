@@ -7,16 +7,22 @@ module KamIRC
       REGISTER['PRIVMSG'] = self
 
       def self.from_message(msg)
-        prefix = msg[:prefix]
+        if prefix = msg[:prefix]
+          new(
+            prefix[:nickname],
+            prefix[:user],
+            prefix[:host],
+            msg[:prefix],
+            'PRIVMSG',
+            *msg[:params]
+          )
+        else
+          new(nil, nil, nil, nil, 'PRIVMSG', *msg[:params].map(&:to_s))
+        end
+      end
 
-        new(
-          prefix[:nickname],
-          prefix[:user],
-          prefix[:host],
-          msg[:prefix],
-          'PRIVMSG',
-          *msg[:params]
-        )
+      def to_message
+        ":#{from_nick}!#{from_user}@#{from_host} #{cmd} #{target} :#{text}"
       end
     end
 

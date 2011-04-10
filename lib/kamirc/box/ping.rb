@@ -8,7 +8,8 @@ module KamIRC
       end
 
       def to_message
-        ["PING", server, server2].compact.join(" ")
+        servers = [server, server2].compact.join(" ")
+        "PING :#{servers}"
       end
     end
 

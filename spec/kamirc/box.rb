@@ -4,9 +4,7 @@ require_relative '../../lib/kamirc/box'
 require 'bacon'
 Bacon.summary_on_exit
 
-describe KamIRC::Box do
-  parser = KamIRC::MessageParser.new
-
+module SpecParser
   def parse(str)
     parser = KamIRC::Message.new
     parser.parse(str)
@@ -15,6 +13,10 @@ describe KamIRC::Box do
     puts error, parser.root.error_tree
     raise(error)
   end
+end
+
+describe KamIRC::Box do
+  extend SpecParser
 
   it 'boxes NOTICE' do
     msg = parse(":pratchett.freenode.net NOTICE * :*** Looking up your hostname...")
@@ -31,5 +33,59 @@ describe KamIRC::Box do
     box = KamIRC::Box::Notice.from_message(parsed)
     msg = box.to_message
     msg.should == original
+  end
+
+  describe KamIRC::Box::Reply do
+    extend SpecParser
+
+    def reply(cmd, vars)
+      reply = KamIRC::Box::Reply(
+        from: {hostname: 'host'},
+        target: 'target',
+        cmd: cmd,
+        vars: vars
+      )
+    end
+
+    it 'unboxes RPL_WELCOME' do
+      msg = parse(":host 001 target manveru :Welcome to the Internet Relay Network anick!auser@ahost")
+      box = KamIRC::Box::Reply.from_message(msg)
+
+      box.should == KamIRC::Box::Reply(
+        from: {hostname: 'host'},
+        target: 'target',
+        cmd: KamIRC::RPL_WELCOME,
+        vars: {},
+        params: ["manveru", "Welcome to the Internet Relay Network anick!auser@ahost"],
+      )
+    end
+
+    it 'unboxes ERR_NOSUCHNICK' do
+      msg = parse(":host 401 target manveru :No such nick/channel")
+      box = KamIRC::Box::Reply.from_message(msg)
+
+      box.should == KamIRC::Box::Reply(
+        from: {hostname: 'host'},
+        target: 'target',
+        cmd: KamIRC::ERR_NOSUCHNICK,
+        vars: {},
+        params: ["manveru", "No such nick/channel"],
+      )
+    end
+
+    it 'boxes ERR_NOSUCHNICK' do
+      reply(KamIRC::ERR_NOSUCHNICK, nick: 'manveru').
+        to_message.should == ":host 401 target manveru :No such nick/channel"
+    end
+
+    it 'boxes ERR_NOSUCHSERVER' do
+      reply(KamIRC::ERR_NOSUCHSERVER, server_name: 'someserver').
+        to_message.should == ":host 402 target someserver :No such server"
+    end
+
+    it 'boxes RPL_NAMREPLY' do
+      reply(KamIRC::RPL_NAMREPLY, names: 
+    (RPL_NAMREPLY = 353) => "%{channel} :[[@|+]%{nick} [[@|+]%{nick} [...]]]",
+    end
   end
 end

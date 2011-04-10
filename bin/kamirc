@@ -6,7 +6,7 @@ options = KamIRC::Options.new(:kamirc)
 
 options.dsl do
   o "Host or IP to connect to",
-    :host, "chat.freenode.net"
+    :host, "localhost"
 
   o "Port to connect to",
     :port, 6667
