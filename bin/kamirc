@@ -19,26 +19,6 @@ options.dsl do
 
   o "Username",
     :user, "Manveru's Bot"
-
-  sub :google_search do
-    o "Your google custom search API key",
-      :key, nil
-
-    o "The custom search engine ID to scope this search query (cx)",
-      :cx, nil
-  end
-end
-
-begin
-  File.open(File.expand_path("~/.netrc")) do |io|
-    io.each_line do |line|
-      if /^machine\s+www\.googleapis\.com\s+login\s+(?<cx>\S+)\s+password\s+(?<key>\S+)/ =~ line
-        options.google_search.key ||= key
-        options.google_search.cx ||= cx
-      end
-    end
-  end
-rescue Errno::ENOENT
 end
 
 EM.run do
