@@ -3,26 +3,19 @@ module KamIRC
   # messages to channels. <target> is usually the nickname of the recipient
   # of the message, or a channel name.
   module Box
-    class Privmsg < Struct.new(:from_nick, :from_user, :from_host, :from, :cmd, :target, :text)
+    class Privmsg < Struct.new(:from, :cmd, :target, :text)
       REGISTER['PRIVMSG'] = self
 
       def self.from_message(msg)
-        if prefix = msg[:prefix]
-          new(
-            prefix[:nickname],
-            prefix[:user],
-            prefix[:host],
-            msg[:prefix],
-            'PRIVMSG',
-            *msg[:params]
-          )
+        if prefix = msg[:user]
+          new(msg[:user].to_s, 'PRIVMSG', *msg[:params].map(&:to_s))
         else
-          new(nil, nil, nil, nil, 'PRIVMSG', *msg[:params].map(&:to_s))
+          new(nil, 'PRIVMSG', *msg[:params].map(&:to_s))
         end
       end
 
       def to_message
-        ":#{from_nick}!#{from_user}@#{from_host} #{cmd} #{target} :#{text}"
+        ":#{from} #{cmd} #{target} :#{text}"
       end
     end
 

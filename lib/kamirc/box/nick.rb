@@ -4,9 +4,19 @@ module KamIRC
       REGISTER['NICK'] = self
 
       def self.from_message(msg)
-        new(msg[:cmd].to_s, *msg[:params].map(&:to_s))
+        new('NICK', *msg[:params].map(&:to_s))
+      end
+
+      def to_message
+        "NICK #{nick}"
+      end
+    end
+
+    def self.Nick(hash = {})
+      Nick.new.tap do |instance|
+        instance.cmd = 'NICK'
+        hash.each{|key, value| instance[key] = value }
       end
     end
   end
 end
-

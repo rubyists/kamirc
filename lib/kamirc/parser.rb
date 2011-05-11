@@ -4,7 +4,7 @@ module KamIRC
   class MessageParser < Parslet::Parser
     # [ ":" prefix SPACE ] command [ params ] crlf
     rule :message do
-      (str(':') >> prefix.as(:prefix) >> space).maybe >>
+      (str(':') >> prefix >> space).maybe >>
       command >>
       params.maybe.as(:params)
     end
@@ -13,11 +13,11 @@ module KamIRC
 
     # hostname / ( nickname [ [ "!" user ] "@" host ] )
     rule :prefix do
-      prefix_user | prefix_server
+      prefix_user.as(:user) | prefix_server.as(:server)
     end
 
     rule :prefix_server do
-      hostname.as(:hostname)
+      hostname
     end
 
     rule :prefix_user do
@@ -188,6 +188,12 @@ module KamIRC
     end
   end
 
+  class User < Struct.new(:nick, :user, :host)
+    def to_s
+      nick
+    end
+  end
+
   class Message
     def initialize
       @parser = MessageParser.new
@@ -199,20 +205,17 @@ module KamIRC
 
       fix_general(msg, :params, :param)
 
+      if user = msg[:user]
+        if nickname = user[:nickname] and username = user[:user] and host = user[:host]
+          msg[:user] = User.new(nickname.to_s, username.to_s, host.to_s)
+        end
+      end
+
       msg
     end
 
     def root
       @parser.root
-    end
-
-    def fix_353(msg)
-      fix_general(msg, :nicks, :nick)
-    end
-
-    def fix_JOIN(msg)
-      fix_general(msg, :channels, :channel)
-      fix_general(msg, :keys, :key)
     end
 
     # work around lack of transform support for array of hashes in parslet

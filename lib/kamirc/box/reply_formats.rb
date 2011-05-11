@@ -122,9 +122,8 @@ module KamIRC
     (RPL_WHOWASUSER = 314) => "%{nick} %{user} %{host} * :%{real_name}",
     # When replying to a WHOWAS message, a server must use the replies RPL_WHOWASUSER, RPL_WHOISSERVER or ERR_WASNOSUCHNICK for each nickname in the presented list. At the end of all reply batches, there must be RPL_ENDOFWHOWAS (even if there was only one reply and it was an error).
     (RPL_ENDOFWHOWAS = 369) => "%{nick} :End of WHOWAS",
-    (RPL_LISTSTART = 321) => "Channel :Users  Name",
-    (RPL_LIST = 322) => "%{channel} %{#_visible} :%{topic}",
-    # Replies RPL_LISTSTART, RPL_LIST, RPL_LISTEND mark the start, actual replies with data and end of the server's response to a LIST command. If there are no channels available to return, only the start and end reply must be sent.
+    (RPL_LIST = 322) => "%{channel} %{visible} :%{topic}",
+    # Replies RPL_LIST, RPL_LISTEND mark the start, actual replies with data and end of the server's response to a LIST command. If there are no channels available to return, only the start and end reply must be sent.
     (RPL_LISTEND = 323) => ":End of /LIST",
     (RPL_CHANNELMODEIS = 324) => "%{channel} %{mode} %{mode_params}",
     (RPL_NOTOPIC = 331) => "%{channel} :No topic is set",
@@ -138,8 +137,8 @@ module KamIRC
     (RPL_WHOREPLY = 352) => "%{channel} %{user} %{host} %{server} %{nick} %{H|G}[*][@|+] :%{hopcount} %{real_name}",
     # The RPL_WHOREPLY and RPL_ENDOFWHO pair are used to answer a WHO message. The RPL_WHOREPLY is only sent if there is an appropriate match to the WHO query. If there is a list of parameters supplied with a WHO message, a RPL_ENDOFWHO must be sent after processing each list item with <name> being the item.
     (RPL_ENDOFWHO = 315) => "%{name} :End of /WHO list",
-    (RPL_NAMREPLY = 353) => "%{channel} :[[@|+]%{nick} [[@|+]%{nick} [...]]]",
-    # To reply to a NAMES message, a reply pair consisting of RPL_NAMREPLY and RPL_ENDOFNAMES is sent by the server back to the client. If there is no channel found as in the query, then only RPL_ENDOFNAMES is returned. The exception to this is when a NAMES message is sent with no parameters and all visible channels and contents are sent back in a series of RPL_NAMEREPLY messages with a RPL_ENDOFNAMES to mark the end.
+    (RPL_NAMREPLY = 353) => "%{visibility} %{channel} :%{nicks}",
+    # To reply to a NAMES message, a reply pair consisting of RPL_NAMREPLY and RPL_ENDOFNAMES is sent by the server back to the client. If there is no channel found as in the query, then only RPL_ENDOFNAMES is returned. The exception to this is when a NAMES message is sent with no parameters and all visible channels and contents are sent back in a series of RPL_NAMREPLY messages with a RPL_ENDOFNAMES to mark the end.
     (RPL_ENDOFNAMES = 366) => "%{channel} :End of /NAMES list",
     (RPL_LINKS = 364) => "%{mask} %{server} :%{hopcount} %{server_info}",
     # In replying to the LINKS message, a server must send replies back using the RPL_LINKS numeric and mark the end of the list using an RPL_ENDOFLINKS reply.v

@@ -2,8 +2,8 @@ module KamIRC
   module Sparks
     class Set < Spark
       def self.register(bot)
-        bot.register self, Box::Privmsg(from_nick: 'manveru', text: /^\.set\s+(?<key>\S+)\s+(?<value>.+)$/)
-        bot.register self, Box::Privmsg(from_nick: 'manveru', target: bot.nick, text: /^set\s+(?<key>\S+)\s+(?<value>.+)$/)
+        bot.register self, Box::Privmsg(from: /manveru/, text: /^\.set\s+(?<key>\S+)\s+(?<value>.+)$/)
+        bot.register self, Box::Privmsg(from: /manveru/, target: bot.nick, text: /^set\s+(?<key>\S+)\s+(?<value>.+)$/)
       end
 
       def call

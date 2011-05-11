@@ -8,30 +8,45 @@ module KamIRC
 
   class Bot < EM::P::LineAndTextProtocol
     def self.connect(options, &block)
-      EM.connect(options.host, options.port, self, options, &block)
+      pass = {
+        host: 'localhost',
+        port: 6667,
+        nick: 'manverbot',
+        realname: "Manveru's Bot"
+      }.merge(options)
+      EM.connect(pass[:host], pass[:port], self, pass, &block)
     end
 
     attr_reader :options
 
     def initialize(options)
       @options = options
+      @reconnect = true
       @parser = Message.new
       @register = {}
 
       super()
     end
 
-    def nick
-      options.nick
-    end
+    def nick; options[:nick] end
+    def host; options[:host] end
+    def port; options[:port] end
+    def password; options[:password] end
+    def realname; options[:realname] end
 
     def connection_completed
-      say("PASS #{options.pass}") if options.pass
-      say("NICK #{options.nick}")
-      say("USER #{options.nick} 0 * :#{options.user}")
+      say KamIRC::Box::Pass(password: password) if password
+      say KamIRC::Box::Nick(nick: nick)
+      say KamIRC::Box::User(nick: nick, flags: USER_INVISIBLE, reserved: '*', realname: realname)
+    end
+
+    def quit(reason = "")
+      @reconnect = false
+      say("QUIT :#{reason}")
     end
 
     def receive_line(line)
+      puts "< #{line}"
       msg = @parser.parse(line)
       EM.defer{ dispatch(box(msg)) }
     rescue Parslet::ParseFailed => error
@@ -47,8 +62,9 @@ module KamIRC
     end
 
     def unbind
-      host, port = options.host, options.port
       puts "Lost connection to #{host}:#{port}"
+
+      return unless @reconnect
 
       EM.add_timer(1){
         puts "Reconnect to #{host}:#{port}"
@@ -57,8 +73,6 @@ module KamIRC
     end
 
     def dispatch(box)
-      p box
-
       @register.each do |matcher, spark|
         next unless matches = matching_selectors(box, matcher)
 
@@ -105,8 +119,9 @@ module KamIRC
     end
 
     def say(msg)
-      p say: msg
-      send_data("#{msg}\r\n")
+      raw = msg.respond_to?(:to_message) ? msg.to_message : msg
+      puts "> #{raw}"
+      send_data("#{raw}\r\n")
     end
 
     def register(spark, selectors)

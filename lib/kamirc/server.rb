@@ -5,11 +5,51 @@ require 'set'
 
 module KamIRC
   class Server < EM::P::LineAndTextProtocol
-    class Channel < Struct.new(:name, :topic, :channel, :users, :subscriptions)
+    # A channel is a named group of one or more users which will all receive
+    # messages addressed to that channel. A channel is characterized by its
+    # name, properties and current members.
+    #
+    # Channels names are strings (beginning with a '&', '#', '+' or '!'
+    # character) of length up to fifty (50) characters. Channel names are case
+    # insensitive.
+    #
+    # Apart from the the requirement that the first character being either '&',
+    # '#', '+' or '!' (hereafter called "channel prefix").
+    #
+    # The only restriction on a channel name is that it SHALL NOT contain any
+    # spaces (' '), a control G (^G or ASCII 7), a comma (',' which is used as
+    # a list item separator by the protocol).
+    #
+    # Also, a colon (':') is used as a delimiter for the channel mask. The
+    # exact syntax of a channel name is defined in "IRC Server Protocol"
+    # [IRC-SERVER].
+    class Channel < Struct.new(:name, :topic, :channel, :users, :subscriptions, :modes)
+      # Oh, the wonderful world of channel modes...
+      #
+      # a - toggle the anonymous channel flag;
+      # i - toggle the invite-only channel flag;
+      # m - toggle the moderated channel;
+      # n - toggle the no messages to channel from clients on the
+      #     outside;
+      # q - toggle the quiet channel flag;
+      # p - toggle the private channel flag;
+      # s - toggle the secret channel flag;
+      # r - toggle the server reop channel flag;
+      # t - toggle the topic settable by channel operator only flag;
+
+      # k - set/remove the channel key (password);
+      # l - set/remove the user limit to channel;
+
+      # b - set/remove ban mask to keep users out;
+      # e - set/remove an exception mask to override a ban mask;
+      # I - set/remove an invitation mask to automatically override
+      #     the invite-only flag;
+
       def initialize(name, topic = nil)
         self.channel = EM::Channel.new
         self.users = Set.new
         self.subscriptions = {}
+        self.modes = {}
 
         self.name, self.topic = name, topic
       end
@@ -67,7 +107,7 @@ module KamIRC
     end
 
     def receive_line(line)
-      p line: line
+      puts "> %p" % [line]
       msg = @parser.parse(line)
       EM.defer{ dispatch(box(msg)) }
     rescue Parslet::ParseFailed => error
@@ -79,87 +119,18 @@ module KamIRC
     end
 
     def prefix
-      "!#{@user}@#{@options.host}"
+      "#{nick}!#{nick}@#{host}"
     end
 
     attr_reader :nick
 
     def dispatch(box)
-      # p box: box
+      method = "dispatch_#{box.cmd.to_s.downcase}"
 
-      case box.cmd.to_s.downcase
-      when 'privmsg'
-        case box.target
-        when /^#/ # to channel
-          if channel = CHANNELS[box.target]
-            box.from_nick = @nick
-            box.from_user = @user
-            box.from_host = @options.host
-            channel << box
-          end
-        end
-        # {:cmd=>"PRIVMSG"@0, :params=>["#foo"@8, "hello"@14]}
-      when 'topic'
-        if channel = CHANNELS[box.channel]
-          if topic = box.text
-            channel.topic = topic
-          else
-            say_join_topic(channel.name, channel.topic)
-          end
-        else
-          say_rpl_notopic(channel.name)
-        end
-      when 'pass'
-        @pass = box.params.first
-      when 'join'
-        name = box.channel
-        channel = CHANNELS[name] ||= Channel.new(name)
-        channel.join(self){
-
-=begin
-:madveru!~madveru@EM114-48-106-54.pool.e-mobile.ne.jp JOIN :#test
-:anthony.freenode.net 332 madveru #test :Welcome to freenode's test channel | Note: This is NOT #flood! Be nice, do NOT spam and do NOT paste senseless crap here. Try to be nice and helpful. If you need a response for a test, type '#say foobar' or '#moo' and '#test' for query tests. Test your bot in channel #botwar.
-
-if channel.topic
-  reply(RPL_TOPIC, channel: channel.name, topic: channel.topic)
-else
-  reply(RPL_NOTOPIC, channel: channel.name)
-end
-
-# TODO: time topic was set, not part of RFC
-# :anthony.freenode.net 333 madveru #test LuX 1264585024
-
-
-:anthony.freenode.net 353 madveru @ #test :madveru +angrynerdtest +joost +qelo +JStoker +harrykar +Pira +xnt14 +niekie +jtrucks +testuser1 +kenaan +sdx23 +kaffee +sysdef +LuX +keeroo +meder +chmouel +tohirom_away @ChanServ
-:anthony.freenode.net 366 madveru #test :End of /NAMES list.
-:ChanServ!ChanServ@services. MODE #test +v madveru
-=end
-
-          # reply(RPL_LIST, channel: channel.name, visible:
-          say_join_topic(channel.name, channel.topic)
-        }
-      when 'part'
-        channel = CHANNELS[box.channel]
-        channel.part(self) if channel
-      when 'nick'
-        nick = box.nick
-
-        if USERS.key?(nick)
-          say_nickname_is_already_in_use
-        else
-          @nick = nick
-          USERS[@nick] = self
-        end
-      when 'user'
-        @user = box.name
-      when 'ping'
-        p box
-        say Box::Pong(server: box.server)
-      when 'pong'
-        if @ping_timeout_timer
-          EM.cancel_timer(@ping_timeout_timer)
-          @ping_timeout_timer = nil
-        end
+      if respond_to?(method)
+        send(method, box)
+      else
+        p no_dispatch: box
       end
 
       post_dispatch
@@ -175,6 +146,121 @@ end
       say_connect
     end
 
+    def dispatch_mode(box)
+      p mode: box
+
+      if box.mode
+      else
+        case target = box.target
+        when /^#/ # channel
+          if channel = CHANNELS[target]
+            channel.mode
+            reply(RPL_CHANNELMODEIS, channel: channel, mode: channel.mode)
+          end
+        end
+      end
+
+      # {:mode=>#<struct KamIRC::Box::Mode from=nil, cmd="MODE", target="#foo", mode=nil>}
+
+      # 09:29 znc --> | :calvino.freenode.net 324 manveru #ramaze +cjnt 3:45
+      # 09:29 znc --> | :calvino.freenode.net 329 manveru #ramaze 1170729411
+    end
+
+    # {:cmd=>"PRIVMSG"@0, :params=>["#foo"@8, "hello"@14]}
+    def dispatch_privmsg(box)
+      case box.target
+      when /^#/ # to channel
+        if channel = CHANNELS[box.target]
+          box.from_nick = @nick
+          box.from_user = @nick
+          box.from_host = @options.host
+          channel << box
+        end
+      else # to client
+        if client = USERS[box.target]
+          box.from_nick = @nick
+          box.from_user = @nick
+          box.from_host = @options.host
+          client.say(box)
+        end
+      end
+    end
+
+    def dispatch_topic(box)
+      if channel = CHANNELS[box.channel]
+        if topic = box.text
+          channel.topic = topic
+          reply(RPL_TOPIC, channel: channel.name, topic: channel.topic)
+        else
+          reply(RPL_TOPIC, channel: channel.name, topic: channel.topic)
+        end
+      else
+        reply(RPL_NOTOPIC, channel: channel.name)
+      end
+    end
+
+    def dispatch_pass(box)
+      @pass = box.params.first
+    end
+
+    def dispatch_join(box)
+      name = box.channel
+      channel = CHANNELS[name] ||= Channel.new(name)
+      channel.join self do
+        say Box::Join(target: prefix, channel: channel.name)
+
+        if channel.topic
+          reply(RPL_TOPIC, channel: channel.name, topic: channel.topic)
+        else
+          reply(RPL_NOTOPIC, channel: channel.name)
+        end
+
+        nicks = %w[a bc def ghijk lmnopq rstuvwx @yz].join(' ')
+        reply(RPL_NAMREPLY, visibility: '@', channel: channel.name, nicks: nicks)
+        reply(RPL_ENDOFNAMES, channel: channel.name)
+
+        say ":#{prefix} MODE #{channel.name} +v #{@nick}"
+      end
+    end
+
+    def dispatch_part(box)
+      channel = CHANNELS[box.channel]
+      channel.part(self) if channel
+    end
+
+    def dispatch_quit(box)
+      # answer to channels and the user
+      # :madveru!~madveru@EM114-48-215-204.pool.e-mobile.ne.jp QUIT :Client Quit
+      say Box::Quit(target: prefix, message: box.message)
+      close_connection_after_writing
+    end
+
+    def dispatch_nick(box)
+      nick = box.nick
+
+      if USERS.key?(nick)
+        say_nickname_is_already_in_use
+      else
+        @nick = nick
+        USERS[@nick] = self
+      end
+    end
+
+    def dispatch_user(box)
+      @user = box.realname
+    end
+
+    def dispatch_ping(box)
+      say Box::Pong(server: box.server)
+    end
+
+    def dispatch_pong(box)
+      if @ping_timeout_timer
+        EM.cancel_timer(@ping_timeout_timer)
+        @ping_timeout_timer = nil
+      end
+    end
+
     def say_rpl_notopic(channel)
       reply cmd: '331', params: [channel, "No topic is set"]
     end
@@ -183,12 +269,12 @@ end
       @port, @ip = Socket.unpack_sockaddr_in(get_peername)
       @host = Socket.gethostbyaddr(IPAddr.new(@ip).hton).first
 
-      reply(RPL_WELCOME, nick: nick, user: user, host: host)
+      reply(RPL_WELCOME, nick: nick, user: nick, host: host)
       reply(RPL_YOURHOST, servername: @options.host, version: @options.version)
       reply(RPL_CREATED, date: @options.creation_time.strftime('%a %b %d %Y at %T %Z'))
       reply(RPL_MYINFO, servername: @options.host, version: @options.version,
-                        available_user_modes: @options.available_user_modes,
-                        available_channel_modes: @options.available_channel_modes)
+            available_user_modes: @options.available_user_modes,
+            available_channel_modes: @options.available_channel_modes)
       say_lusers
       say_motd
     end
@@ -523,8 +609,12 @@ end
 
     def setup_ping
       @ping_timer = EM.add_periodic_timer(60){
-        @ping_timeout_timer = EM.add_timer(50){ close_connection }
-        say_ping
+        @ping_timeout_timer = EM.add_timer(50){
+        # also say to all channels he's on?
+        say ":#{nick}!#{nick}@#{host} QUIT :Timeout"
+        close_connection_after_writing
+      }
+      say_ping
       }
     end
 
@@ -546,7 +636,7 @@ end
 
     def say(msg)
       msg = msg.to_message if msg.respond_to?(:to_message)
-      p say: msg
+      puts "< %p" % [msg]
       send_data("#{msg}\r\n")
     end
 

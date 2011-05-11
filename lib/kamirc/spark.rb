@@ -11,7 +11,9 @@ module KamIRC
     end
 
     def target
-      target = msg.target == bot.nick ? msg.from_nick : msg.target
+      p msg: msg
+      p bot: bot.nick
+      target = msg.target == bot.nick ? msg.from : msg.target
     end
 
     def reply(text)

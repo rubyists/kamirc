@@ -21,7 +21,7 @@ describe KamIRC::Box do
   it 'boxes NOTICE' do
     msg = parse(":pratchett.freenode.net NOTICE * :*** Looking up your hostname...")
     box = KamIRC::Box::Notice.from_message(msg)
-    box.from.should == {hostname: 'pratchett.freenode.net'}
+    box.from.should == {server: 'pratchett.freenode.net'}
     box.cmd.should == 'NOTICE'
     box.target.should == '*'
     box.text.should == '*** Looking up your hostname...'
@@ -81,11 +81,6 @@ describe KamIRC::Box do
     it 'boxes ERR_NOSUCHSERVER' do
       reply(KamIRC::ERR_NOSUCHSERVER, server_name: 'someserver').
         to_message.should == ":host 402 target someserver :No such server"
-    end
-
-    it 'boxes RPL_NAMREPLY' do
-      reply(KamIRC::RPL_NAMREPLY, names: 
-    (RPL_NAMREPLY = 353) => "%{channel} :[[@|+]%{nick} [[@|+]%{nick} [...]]]",
     end
   end
 end

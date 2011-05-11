@@ -28,32 +28,24 @@ describe KamIRC::MessageParser do
     parser.hostname.parse('calvino.freenode.net').should == 'calvino.freenode.net'
   end
 
-  it 'parses prefix' do
+  it 'parses prefix user' do
     parser.prefix.parse("manveru!~manveru@b08s28ur.corenetworks.net").should == {
-      nickname: "manveru",
-      user: "~manveru",
-      host: "b08s28ur.corenetworks.net"
+      user: "manveru!~manveru@b08s28ur.corenetworks.net"
+    }
+  end
+
+  it 'parses prefix server' do
+    parser.prefix.parse("calvino.freenode.net").should == {
+      server: "calvino.freenode.net"
     }
   end
 
   it 'parses prefix_server' do
-    parser.prefix_server.parse("calvino.freenode.net").should == {hostname: "calvino.freenode.net"}
+    parser.prefix_server.parse("calvino.freenode.net").should == "calvino.freenode.net"
   end
 
   it 'parses prefix_user' do
-    parser.prefix_user.parse("manveru!~manveru@b08s28ur.corenetworks.net").should == {
-      nickname: "manveru",
-      user: "~manveru",
-      host: "b08s28ur.corenetworks.net"
-    }
-  end
-
-  it 'parses prefix_user' do
-    parser.prefix_user.parse("bougyman!bougyman@pdpc/supporter/gold/bougyman").should == {
-      nickname: "bougyman",
-      user: "bougyman",
-      host: "pdpc/supporter/gold/bougyman"
-    }
+    parser.prefix_user.parse("bougyman!bougyman@pdpc/supporter/gold/bougyman").should == "bougyman!bougyman@pdpc/supporter/gold/bougyman"
   end
 end
 
@@ -100,9 +92,9 @@ describe KamIRC::Message do
   end
 
   it 'parses MODE' do
-    msg = parse(":manverbot MODE manverbot :+i")
+    msg = parse(":manverbot!bot@iota MODE manverbot :+i")
     msg.should == {
-      prefix: {hostname: "manverbot"},
+      user: "manverbot!bot@iota",
       cmd: 'MODE',
       params: ["manverbot", "+i"]
     }
@@ -111,24 +103,15 @@ describe KamIRC::Message do
   it 'parses NOTICE' do
     msg = parse(":pratchett.freenode.net NOTICE * :*** Looking up your hostname...")
 
-    msg[:prefix][:hostname].should == "pratchett.freenode.net"
+    msg[:server].should == "pratchett.freenode.net"
     msg[:cmd].should == 'NOTICE'
     msg[:params].should == ['*', "*** Looking up your hostname..."]
-  end
-
-  it 'boxes NOTICE' do
-    msg = parse(":pratchett.freenode.net NOTICE * :*** Looking up your hostname...")
-    box = KamIRC::Box::Notice.from_message(msg)
-    box.should == nil
-  end
-
-  it 'unboxes NOTICE' do
   end
 
   it 'parses 001 RPL_WELCOME' do
     msg = parse(":hitchcock.freenode.net 001 manverbot :Welcome to the freenode Internet Relay Chat Network manverbot")
     msg.should == {
-      prefix: {hostname: "hitchcock.freenode.net"},
+      server: "hitchcock.freenode.net",
       cmd: "001",
       params: [
         "manverbot",
@@ -140,7 +123,7 @@ describe KamIRC::Message do
   it 'parses 002 RPL_YOURHOST' do
     msg = parse(":asimov.freenode.net 002 manverbot :Your host is asimov.freenode.net[174.143.119.91/6667], running version ircd-seven-1.0.3")
     msg.should == {
-      prefix: {hostname: "asimov.freenode.net"},
+      server: "asimov.freenode.net",
       cmd: "002",
       params: [
         "manverbot",
@@ -154,7 +137,7 @@ describe KamIRC::Message do
   it 'parses 003 RPL_CREATED' do
     msg = parse(":gibson.freenode.net 003 manverbot :This server was created Wed Feb 24 2010 at 00:05:12 CET")
     msg.should == {
-      prefix: {hostname: "gibson.freenode.net"},
+      server: "gibson.freenode.net",
       cmd: "003",
       params: ["manverbot", "This server was created Wed Feb 24 2010 at 00:05:12 CET"]
     }
@@ -164,14 +147,14 @@ describe KamIRC::Message do
     msg = parse(":manveru!~manveru@b08s28ur.corenetworks.net PRIVMSG manverbot :just a little test")
 
     msg.should == {
-      prefix: {nickname: "manveru", user: "~manveru", host: "b08s28ur.corenetworks.net"},
+      user: "manveru!~manveru@b08s28ur.corenetworks.net",
       cmd: "PRIVMSG",
       params: ["manverbot", "just a little test"]
     }
 
     # Message from Angel to Wiz.
     parse(":Angel!wings@irc.org PRIVMSG Wiz :Are you receiving this message ?").should == {
-      prefix: {nickname: "Angel", user: "wings", host: "irc.org"},
+      user: "Angel!wings@irc.org",
       cmd: "PRIVMSG",
       params: ["Wiz", "Are you receiving this message ?"]
     }
@@ -223,11 +206,7 @@ describe KamIRC::Message do
     }
 
     parse(":bougyman!bougyman@pdpc/supporter/gold/bougyman PRIVMSG #rubyists :hello there").should == {
-      prefix: {
-        nickname: "bougyman",
-        user: "bougyman",
-        host: "pdpc/supporter/gold/bougyman"
-      },
+      user: "bougyman!bougyman@pdpc/supporter/gold/bougyman",
       cmd: "PRIVMSG",
       params: ["#rubyists", "hello there"]
     }
@@ -241,7 +220,7 @@ describe KamIRC::Message do
   it 'parses 004 RPL_MYINFO' do
     msg = parse(":gibson.freenode.net 004 manverbot gibson.freenode.net ircd-seven-1.0.3 DOQRSZaghilopswz CFILMPQbcefgijklmnopqrstvz bkloveqjfI")
     msg.should == {
-      prefix: {hostname: "gibson.freenode.net"},
+      server: "gibson.freenode.net",
       cmd: "004",
       params: [
         "manverbot",
@@ -257,7 +236,7 @@ describe KamIRC::Message do
   it 'parses 005 RPL_ISUPPORT (partially)' do
     msg = parse(":jordan.freenode.net 005 manverbot CHANTYPES=# EXCEPTS INVEX CHANMODES=eIbq,k,flj,CFLMPQcgimnprstz CHANLIMIT=#:120 PREFIX=(ov)@+ MAXLIST=bqeI:100 MODES=4 NETWORK=freenode KNOCK STATUSMSG=@+ CALLERID=g :are supported by this server",)
     msg.should == {
-      prefix: {hostname: "jordan.freenode.net"},
+      server: "jordan.freenode.net",
       cmd: "005",
       params: [
         "manverbot",
@@ -281,7 +260,7 @@ describe KamIRC::Message do
   it 'parses 251 RPL_LUSERCLIENT' do
     msg = parse(":jordan.freenode.net 251 manverbot :There are 362 users and 58364 invisible on 24 servers")
     msg.should == {
-      prefix: {hostname: "jordan.freenode.net"},
+      server: "jordan.freenode.net",
       cmd: "251",
       params: ["manverbot", "There are 362 users and 58364 invisible on 24 servers"]
     }
@@ -290,7 +269,7 @@ describe KamIRC::Message do
   it 'parses 252 RPL_LUSEROP' do
     msg = parse(":jordan.freenode.net 252 manverbot 26 :IRC Operators online")
     msg.should == {
-      prefix: {hostname: "jordan.freenode.net"},
+      server: "jordan.freenode.net",
       cmd: "252",
       params: ["manverbot", "26", "IRC Operators online"]
     }
@@ -299,7 +278,7 @@ describe KamIRC::Message do
   it 'parses 253 RPL_LUSERUNKNOWN' do
     msg = parse(":jordan.freenode.net 253 manverbot 8 :unknown connection(s)")
     msg.should == {
-      prefix: {hostname: "jordan.freenode.net"},
+      server: "jordan.freenode.net",
       cmd: "253",
       params: ["manverbot", "8", "unknown connection(s)"]
     }
@@ -308,7 +287,7 @@ describe KamIRC::Message do
   it 'parses 254 RPL_LUSERCHANNELS' do
     msg = parse(":jordan.freenode.net 254 manverbot 36171 :channels formed")
     msg.should == {
-      prefix: {hostname: "jordan.freenode.net"},
+      server: "jordan.freenode.net",
       cmd: "254",
       params: ["manverbot", "36171", "channels formed"]
     }
@@ -317,7 +296,7 @@ describe KamIRC::Message do
   it 'parses 255 RPL_LUSERME' do
     msg = parse(":jordan.freenode.net 255 manverbot :I have 7480 clients and 1 servers")
     msg.should == {
-      prefix: {hostname: "jordan.freenode.net"},
+      server: "jordan.freenode.net",
       cmd: "255",
       params: ["manverbot", "I have 7480 clients and 1 servers"]
     }
@@ -326,7 +305,7 @@ describe KamIRC::Message do
   it 'parses 265' do
     msg = parse(":asimov.freenode.net 265 manverbot 5452 5452 :Current local users 5452, max 5452")
     msg.should == {
-      prefix: {hostname: "asimov.freenode.net"},
+      server: "asimov.freenode.net",
       cmd: "265",
       params: ["manverbot", "5452", "5452", "Current local users 5452, max 5452"]
     }
@@ -335,7 +314,7 @@ describe KamIRC::Message do
   it 'parses 266' do
     msg = parse(":asimov.freenode.net 266 manverbot 60906 67207 :Current global users 60906, max 67207")
     msg.should == {
-      prefix: {hostname: "asimov.freenode.net"},
+      server: "asimov.freenode.net",
       cmd: "266",
       params: ["manverbot", "60906", "67207", "Current global users 60906, max 67207"]
     }
@@ -344,43 +323,43 @@ describe KamIRC::Message do
   it 'parses 402 ERR_NOSUCHSERVER' do
     msg = parse(":sendak.freenode.net 402 manverbot b08s28ur.corenetworks.net :No such server")
     msg.should == {
-      prefix: {hostname: "sendak.freenode.net"},
+      server: "sendak.freenode.net",
       cmd: "402",
       params: ["manverbot", "b08s28ur.corenetworks.net", "No such server"]
     }
   end
 
   it 'parses JOIN' do
-    msg = parse(":manverbot JOIN :#rubyists")
+    msg = parse(":manverbot!bot@iota JOIN :#rubyists")
     msg.should == {
-      prefix: {hostname: "manverbot"},
+      user: "manverbot!bot@iota",
       cmd: "JOIN",
       params: ["#rubyists"]
     }
   end
 
   it 'parses multiple JOIN' do
-    msg = parse(":manverbot JOIN :#rubyists,#ramaze")
+    msg = parse(":manverbot!bot@iota JOIN :#rubyists,#ramaze")
     msg.should == {
-      prefix: {hostname: "manverbot"},
+      user: "manverbot!bot@iota",
       cmd: "JOIN",
       params: ["#rubyists,#ramaze"]
     }
   end
 
   it 'parses JOIN with a key' do
-    msg = parse(":manverbot JOIN :#rubyists foo")
+    msg = parse(":manverbot!bot@iota JOIN :#rubyists foo")
     msg.should == {
-      prefix: {hostname: "manverbot"},
+      user: "manverbot!bot@iota",
       cmd: "JOIN",
       params: ["#rubyists foo"]
     }
   end
 
   it 'parses multiple JOIN with a key' do
-    msg = parse(":manverbot JOIN :#rubyists,#ramaze foo")
+    msg = parse(":manverbot!bot@iota JOIN :#rubyists,#ramaze foo")
     msg.should == {
-      prefix: {hostname: "manverbot"},
+      user: "manverbot!bot@iota",
       cmd: "JOIN",
       params: ["#rubyists,#ramaze foo"]
     }
@@ -389,7 +368,7 @@ describe KamIRC::Message do
   it 'parses multiple JOIN with keys' do
     msg = parse(":manverbot JOIN :#rubyists,#ramaze foo,bar")
     msg.should == {
-      prefix: {hostname: "manverbot"},
+      server: "manverbot",
       cmd: "JOIN",
       params: ["#rubyists,#ramaze foo,bar"]
     }
@@ -398,7 +377,7 @@ describe KamIRC::Message do
   it 'parses 331 RPL_NOTOPIC' do
     msg = parse(":calvino.freenode.net 331 manverbot #rubyists :No topic is set")
     msg.should == {
-      prefix: {hostname: "calvino.freenode.net"},
+      server: "calvino.freenode.net",
       cmd: "331",
       params: ["manverbot", "#rubyists", "No topic is set"]
     }
@@ -407,7 +386,7 @@ describe KamIRC::Message do
   it 'parses 332 RPL_TOPIC' do
     msg = parse(":calvino.freenode.net 332 manverbot #rubyists :http://github.com/bougyman/freeswitcher | http://github.com/rubyists/tiny_call_center/wiki")
     msg.should == {
-      prefix: {hostname: "calvino.freenode.net"},
+      server: "calvino.freenode.net",
       cmd: "332",
       params: [
         "manverbot",
@@ -420,7 +399,7 @@ describe KamIRC::Message do
   it 'parses 333 RPL_TOPIC_TIME' do
     msg = parse(":calvino.freenode.net 333 manverbot #rubyists bougyman!bougyman@pdpc/supporter/gold/bougyman 1298303043")
     msg.should == {
-      prefix: {hostname: "calvino.freenode.net"},
+      server: "calvino.freenode.net",
       cmd: "333",
       params: [
         "manverbot",
@@ -434,7 +413,7 @@ describe KamIRC::Message do
   it 'parses 353 RPL_NAMREPLY' do
     msg = parse(":calvino.freenode.net 353 manverbot = #rubyists :manverbot swk jShaf lele erikh bougyman manveru @ChanServ thedonvaughn wmoxam khaase Death_Syn misua")
     msg.should == {
-      prefix: {hostname: "calvino.freenode.net"},
+      server: "calvino.freenode.net",
       cmd: "353",
       params: [
         "manverbot",
@@ -448,7 +427,7 @@ describe KamIRC::Message do
   it 'parses 366 RPL_ENDOFNAMES' do
     msg = parse(":calvino.freenode.net 366 manverbot #rubyists :End of /NAMES list.")
     msg.should == {
-      prefix: {hostname: "calvino.freenode.net" },
+      server: "calvino.freenode.net",
       cmd: "366",
       params: ["manverbot", "#rubyists", "End of /NAMES list."]
     }

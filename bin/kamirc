@@ -2,27 +2,15 @@
 
 require_relative '../lib/kamirc'
 
-options = KamIRC::Options.new(:kamirc)
-
-options.dsl do
-  o "Host or IP to connect to",
-    :host, "localhost"
-
-  o "Port to connect to",
-    :port, 6667
-
-  o "Password the bot uses to authenticate to services",
-    :pass, nil
-
-  o "Nickname",
-    :nick, "manverbot"
-
-  o "Username",
-    :user, "Manveru's Bot"
-end
+options = {
+  host: 'chat.freenode.net',
+  port: 6667,
+  nick: 'manverbot',
+  realname: "Manveru's Bot",
+}
 
 EM.run do
   KamIRC::Bot.connect options do |bot|
-    bot.add(:pong, :insult, :join, :end_of_motd, :eight_ball, :set, :pun, :roulette)
+    bot.add(:pong, :insult, :join, :end_of_motd, :eight_ball, :set, :pun, :roulette, :haiku, :part)
   end
 end

@@ -32,6 +32,12 @@ module KamIRC
   end
 end
 
+require_relative 'reply_formats'
+
+__END__
+# The code below was used to generate the initial list, this will be maintained
+# manually from now on.
+
 if $0 == __FILE__
   require 'open-uri'
   require 'nokogiri'
@@ -89,6 +95,9 @@ module KamIRC
             format.replace("%{channels} :channels formed")
           when ":I have <integer> clients and <integer> servers"
             format.replace(":I have %{clients} clients and %{servers} servers")
+          when "<channel> :[[@|+]%{nick} [[@|+]%{nick} [...]]]"
+            # RPL_NAMREPLY
+            format.replace("%{visibility} %{channel} :%{full_nicks}")
           else
             format.gsub!(/<nickname>/, "<nick>")
             format.gsub!(/<([^>]+)>/){ '%{' + $1.tr(' ', '_') + '}' }

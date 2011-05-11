@@ -14,14 +14,17 @@ module KamIRC
   # See PRIVMSG for more details on replies and examples.
   module Box
     class Notice < Struct.new(:from, :cmd, :target, :text)
-      REGISTER['NOTICE'] = self
+      NOTICE = 'NOTICE'.freeze
+      REGISTER[NOTICE] = self
 
       def self.from_message(msg)
-        new(msg[:prefix], 'NOTICE', *msg[:params])
+        if server = msg[:server]
+          new(server, NOTICE, *msg[:params].map(&:to_s))
+        end
       end
 
       def to_message
-        ":#{from[:hostname]} #{cmd} #{target} :#{text}"
+        ":#{from} #{cmd} #{target} :#{text}"
       end
     end
   end
