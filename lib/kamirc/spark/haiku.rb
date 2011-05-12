@@ -14,8 +14,9 @@ module KamIRC
         req = conn.get
         req.callback do
           doc = Nokogiri::HTML(req.response)
-          haiku = doc.css('.haikootitle, .haikooline').map(&:text).join(' / ')
-          reply haiku
+          title = doc.css('.haikootitle').text
+          verses = doc.css('.haikooline').map(&:text)
+          reply "#{title}:  #{verses.join(' / ')}"
         end
       end
     end
